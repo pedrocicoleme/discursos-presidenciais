@@ -48,7 +48,7 @@ def extract_discursos():
             titulo = link.get(u'title')
             real_link = link.get(u'href')
 
-            if not regex.search(ur'^(Biografia|Foto|Ministérios|Vice-presidente|Viage|Órgã|Discursos Vice-Presidente|Substituto|Nereu)', titulo, regex.VERSION1|regex.IGNORECASE):
+            if not regex.search(ur'^(Biografia|Foto|Ministérios|Vice-presidente|Viage|Órgã|Discursos Vice-Presidente|Substituto|Nereu|Café)', titulo, regex.VERSION1|regex.IGNORECASE):
                 all_links[titulo] = urlparse.urljoin(presidente_link, real_link)
 
         pronunciamento_link = root.xpath(u'//a[@title="pronunciamento"]/@href')
