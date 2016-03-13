@@ -9,6 +9,8 @@ import urlparse
 import lxml.html
 import regex
 
+from pprint import pprint
+
 def html_viewer(html, block=False):
     import uuid
     filename = u'/tmp/%s.html' % uuid.uuid4()
@@ -27,13 +29,14 @@ def html_viewer(html, block=False):
 def extract_discursos():
     presidentes = []
 
-    url = u'http://www.biblioteca.presidencia.gov.br/ex-presidentes'
+    url_biblioteca = u'http://www.biblioteca.presidencia.gov.br/'
+    url = u'http://www.biblioteca.presidencia.gov.br/presidencia/ex-presidentes'
 
     r = requests.get(url)
 
     root = lxml.html.fromstring(r.content)
 
-    presidentes_links = [x+u'/' for x in root.xpath(u'//div[@class="photoAlbum"]/div/a[position()=1]/@href')]
+    presidentes_links = [urlparse.urljoin(url_biblioteca, x) for x in root.xpath(u'//div[@class="banner-tile tile-content"]/a[position()=1]/@href')]
 
     for presidente_link in presidentes_links:
         r = requests.get(presidente_link)
@@ -42,23 +45,27 @@ def extract_discursos():
 
         root = lxml.html.fromstring(r.content)
 
-        all_links = dict()
+        sections = root.xpath(u'//h2[@class="outstanding-title"]')
 
-        for link in root.xpath(u'//div[@id="content"]/div[@id="parent-fieldname-text"]/ul[1]/li/a'):
-            titulo = link.get(u'title')
-            real_link = link.get(u'href')
+        if not len(sections):
+            logger.info(u'nao foi possivel encontrar os dados na página')
+            continue
 
-            if not regex.search(ur'^(Biografia|Foto|Ministérios|Vice-presidente|Viage|Órgã|Discursos Vice-Presidente|Substituto|Nereu|Programa "Café)', titulo, regex.VERSION1|regex.IGNORECASE):
-                all_links[titulo] = urlparse.urljoin(presidente_link, real_link)
+        secoes = {}
+        for section in sections[1:]:
+            if not regex.search(ur'^(Biografia|Foto|Ministérios|Resumo do Governo|Vice|Viage|Órgã|Entrevistas|Substituto|Nereu|Café|Galeria|Publicações Oficiais da PR|Espaço|Acervo de|Programas)', section.text_content(), regex.VERSION1|regex.IGNORECASE):
+                #print section.text_content()
 
-        pronunciamento_link = root.xpath(u'//a[@title="pronunciamento"]/@href')
-        discursos_link = root.xpath(u'//a[@title="Discursos"]/@href')
-        mensagens_link = root.xpath(u'//a[contains(@title, "Mensagens")]/@href')
+                links = section.xpath(u'./ancestor::div[@class="tile azul"][1]/following-sibling::div[@class="tile tile-default"][1]//a/@href')
+                
+                secoes[section.text_content()] = links
 
         presidentes.append({
-            u'nome': root.xpath(u'//h1[@class="documentFirstHeading"]/span/text()')[0].strip(),
+            u'nome': sections[0].text_content().strip(),
             u'url': presidente_link,
-            u'links': all_links})
+            u'secoes': secoes})
+
+        # break
 
     # for idx, presidente in enumerate(presidentes):
     #     if presidente[u'mensagens_link'] != None:
@@ -69,9 +76,13 @@ def extract_discursos():
     #         presidentes[idx][u'mensagens_links'] = root.xpath(u'//span[@class="contenttype-file summary"]/a/@href')
 
     for presidente in presidentes:
-        if len(presidente[u'links']):
-            from pprint import pprint
-            pprint(presidente)
+        print u'======================= %s =======================' % presidente[u'nome']
+
+        for secao, links in presidente[u'secoes'].iteritems():
+            for link in links:
+                r = requests.get(link)
+
+                print r.headers[u'content-type']
 
     return
 
