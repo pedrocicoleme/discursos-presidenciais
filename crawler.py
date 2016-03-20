@@ -39,6 +39,8 @@ def extract_discursos():
     presidentes_links = [urlparse.urljoin(url_biblioteca, x) for x in root.xpath(u'//div[@class="banner-tile tile-content"]/a[position()=1]/@href')]
 
     for presidente_link in presidentes_links:
+        print presidente_link
+
         r = requests.get(presidente_link)
 
         #html_viewer(r.content)
@@ -65,7 +67,7 @@ def extract_discursos():
             u'url': presidente_link,
             u'secoes': secoes})
 
-        # break
+        break
 
     # for idx, presidente in enumerate(presidentes):
     #     if presidente[u'mensagens_link'] != None:
@@ -79,10 +81,38 @@ def extract_discursos():
         print u'======================= %s =======================' % presidente[u'nome']
 
         for secao, links in presidente[u'secoes'].iteritems():
+            links_secao_pdf = []
             for link in links:
-                r = requests.get(link)
+                links_secao_pdf = [x for x in go_until_pdf(link)]
 
-                print r.headers[u'content-type']
+                from pprint import pprint
+                pprint(links_secao_pdf)
+
+    return
+
+def go_until_pdf(link):
+    if link.find(u'twitter.com') != -1 or link.find(u'facebook.com') != -1:
+        return
+
+    print link
+    ret = []
+
+    try:
+        r = requests.get(link)
+
+        if r.headers[u'content-type'].find(u'html') != -1:
+            root = lxml.html.fromstring(r.content)
+
+            links_inside = root.xpath(u'//div[@id="content"]//a/@href')
+
+            for link_inside in links_inside:
+                for link_inside_inside in go_until_pdf(link_inside):
+                    yield link_inside_inside
+        else:
+            yield [link]
+            #ret = [[link, r.content, r.headers[u'content-type']]]
+    except Exception as e:
+        logger.info(u'erro ao tentar acessar pagina, descartando')
 
     return
 
