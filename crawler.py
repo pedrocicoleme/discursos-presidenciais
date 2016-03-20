@@ -9,6 +9,8 @@ import urlparse
 import lxml.html
 import regex
 
+import os, hashlib
+
 from pprint import pprint
 
 def html_viewer(html, block=False):
@@ -67,26 +69,18 @@ def extract_discursos():
             u'url': presidente_link,
             u'secoes': secoes})
 
-        break
-
-    # for idx, presidente in enumerate(presidentes):
-    #     if presidente[u'mensagens_link'] != None:
-    #         r = requests.get(presidente[u'mensagens_link'])
-
-    #         root = lxml.html.fromstring(r.content)
-
-    #         presidentes[idx][u'mensagens_links'] = root.xpath(u'//span[@class="contenttype-file summary"]/a/@href')
-
     for presidente in presidentes:
         print u'======================= %s =======================' % presidente[u'nome']
 
         for secao, links in presidente[u'secoes'].iteritems():
-            links_secao_pdf = []
-            for link in links:
-                links_secao_pdf = [x for x in go_until_pdf(link)]
+            path = './data/%s/%s' % (presidente[u'nome'], secao)
+            try: os.makedirs(path)
+            except: pass
 
-                from pprint import pprint
-                pprint(links_secao_pdf)
+            for link in links:
+                for x in go_until_pdf(link):
+                    with open(os.path.join(path, u'%s.pdf' % hashlib.md5().update(x[1]).hexdigest()), 'wb') as f:
+                        f.write(x[1])
 
     return
 
@@ -95,7 +89,6 @@ def go_until_pdf(link):
         return
 
     print link
-    ret = []
 
     try:
         r = requests.get(link)
@@ -109,8 +102,7 @@ def go_until_pdf(link):
                 for link_inside_inside in go_until_pdf(link_inside):
                     yield link_inside_inside
         else:
-            yield [link]
-            #ret = [[link, r.content, r.headers[u'content-type']]]
+            yield [link, r.content, r.headers[u'content-type']]
     except Exception as e:
         logger.info(u'erro ao tentar acessar pagina, descartando')
 
