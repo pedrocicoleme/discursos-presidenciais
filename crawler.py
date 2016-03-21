@@ -69,6 +69,8 @@ def extract_discursos():
             u'url': presidente_link,
             u'secoes': secoes})
 
+        break
+
     for presidente in presidentes:
         print u'======================= %s =======================' % presidente[u'nome']
 
@@ -79,7 +81,9 @@ def extract_discursos():
 
             for link in links:
                 for x in go_until_pdf(link):
-                    with open(os.path.join(path, u'%s.pdf' % hashlib.md5().update(x[1]).hexdigest()), 'wb') as f:
+                    h = hashlib.md5()
+                    h.update(x[1])
+                    with open(os.path.join(path, u'%s.pdf' % h.hexdigest()), 'wb') as f:
                         f.write(x[1])
 
     return
@@ -96,7 +100,7 @@ def go_until_pdf(link):
         if r.headers[u'content-type'].find(u'html') != -1:
             root = lxml.html.fromstring(r.content)
 
-            links_inside = root.xpath(u'//div[@id="content"]//a/@href')
+            links_inside = root.xpath(u'//div[@id="content"]//a[not(ancestor::ul[@class="paginacao listingBar"]) or @class="proximo"]/@href')
 
             for link_inside in links_inside:
                 for link_inside_inside in go_until_pdf(link_inside):
