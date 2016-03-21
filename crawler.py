@@ -68,9 +68,7 @@ def extract_discursos():
             u'nome': sections[0].text_content().strip(),
             u'url': presidente_link,
             u'secoes': secoes})
-
-        break
-
+        
     for presidente in presidentes:
         print u'======================= %s =======================' % presidente[u'nome']
 
