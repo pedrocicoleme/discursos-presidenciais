@@ -15,7 +15,7 @@ def navigate_dirs():
     total = 0
     no_text = 0
 
-    for dirpath, dirnames, filenames in os.walk('./data'):
+    for dirpath, dirnames, filenames in os.walk('./data/discursos'):
         for filename in filenames:
             if not filename.endswith('.pdf'):
                 continue
