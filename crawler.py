@@ -38,9 +38,12 @@ def extract_discursos():
 
     root = lxml.html.fromstring(r.content)
 
-    presidentes_links = [urlparse.urljoin(url_biblioteca, x) for x in root.xpath(u'//div[@class="banner-tile tile-content"]/a[position()=1]/@href')]
+    presidentes_links = [urlparse.urljoin(url_biblioteca, x) for x in \
+      root.xpath(u'//div[@class="banner-tile tile-content"]/a[position()=1]/@href')]
 
-    for presidente_link in presidentes_links:
+    for presidente_link in presidentes_links[13:]:
+        # if presidente_link.find(u'/jk') == -1:
+        #     continue
         print presidente_link
 
         r = requests.get(presidente_link)
@@ -61,19 +64,19 @@ def extract_discursos():
                 #print section.text_content()
 
                 links = section.xpath(u'./ancestor::div[@class="tile azul"][1]/following-sibling::div[@class="tile tile-default"][1]//a/@href')
-                
+
                 secoes[section.text_content()] = links
 
         presidentes.append({
             u'nome': sections[0].text_content().strip(),
             u'url': presidente_link,
             u'secoes': secoes})
-        
+
     for presidente in presidentes:
         print u'======================= %s =======================' % presidente[u'nome']
 
         for secao, links in presidente[u'secoes'].iteritems():
-            path = './data/%s/%s' % (presidente[u'nome'], secao)
+            path = './data/discursos/%s/%s' % (presidente[u'nome'], secao)
             try: os.makedirs(path)
             except: pass
 

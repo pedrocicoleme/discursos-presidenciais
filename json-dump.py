@@ -8,11 +8,9 @@ logger.setLevel(logging.INFO)
 
 import os
 import subprocess
-import tinydb
+import dataset
 import tqdm
 import deco
-
-import time
 
 @deco.concurrent
 def read_pdf_disc(discurso_file, pres_dir, disc_dir, disc_file):
@@ -23,10 +21,10 @@ def read_pdf_disc(discurso_file, pres_dir, disc_dir, disc_file):
         stdout=subprocess.PIPE).communicate()
 
     return {
-        'presidente': pres_dir,
-        'discurso_tipo': disc_dir,
-        'discurso': disc_file,
-        'texto': out}
+        'presidente': pres_dir.decode('utf8'),
+        'discurso_tipo': disc_dir.decode('utf8'),
+        'discurso': disc_file.decode('utf8'),
+        'texto': out.decode('utf8')}
 
 @deco.synchronized
 def read_pdfs_list(disc_intermediate_list):
@@ -38,8 +36,8 @@ def read_pdfs_list(disc_intermediate_list):
     return almost_there_disc_list
 
 def pdfs2db():
-    db = tinydb.TinyDB('./data/discursos_db.json')
-    q = tinydb.Query()
+    db = dataset.connect('sqlite:///data/discursos_db')
+    dbt = db['discurso']
 
     logger.info(u'Searching in folders...')
     disc_intermediate_list = []
@@ -53,8 +51,10 @@ def pdfs2db():
                 if not disc_file.endswith('.pdf'):
                     continue
 
-                if not db.search((q.presidente == pres_dir) \
-                  & (q.discurso_tipo == disc_dir) & (q.discurso == disc_file)):
+                if not len(dbt.columns) > 1 or not dbt.find( \
+                  (dbt.table.columns.presidente == pres_dir.decode('utf8')) \
+                  & (dbt.table.columns.discurso_tipo == disc_dir.decode('utf8')) \
+                  & (dbt.table.columns.discurso == disc_file.decode('utf8'))):
                     discurso_file = os.path.join(discurso_dir, disc_file)
 
                     disc_intermediate_list.append([
@@ -66,10 +66,10 @@ def pdfs2db():
     logger.info(u'Reading all pdfs...')
     almost_there_disc_list = read_pdfs_list(disc_intermediate_list)
 
-    logger.info(u'Saving in tinydb...')
+    logger.info(u'Saving in db...')
     for x in tqdm.tqdm(almost_there_disc_list):
         if x != None:
-            db.insert(x)
+            dbt.insert(x)
 
     logger.info(u'Done')
 
