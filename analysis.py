@@ -17,6 +17,7 @@ db = dataset.connect('sqlite:///data/discursos_db')
 dbt = db['discurso']
 
 stopwords = nltk.corpus.stopwords.words('portuguese')
+stok = nltk.data.load('tokenizers/punkt/portuguese.pickle')
 
 # http://stackoverflow.com/questions/8694815/removing-accent-and-special-characters
 def remove_accents(data):
@@ -32,20 +33,28 @@ def print_from_presidents():
             continue
 
         presidente = row['presidente']
-        texto = regex.sub(ur'[^a-z^0-9^\s]+', u'', remove_accents(row['texto']), \
+        texto_punkt = remove_accents(row['texto'])
+        texto = regex.sub(ur'[^a-z^0-9^\s^.]+', u'', texto_punkt, \
           flags=regex.VERSION1|regex.IGNORECASE|regex.MULTILINE)
 
         print '='*20
         print presidente
         print '='*20
 
+        sentences = [unicode(x).split() for x in stok.tokenize(texto)]
+
+        bigram_transformer = gensim.models.Phrases(sentences)
+
         model_path = './data/w2v_models/%s' % presidente
 
         try:
             model = gensim.models.Word2Vec.load(model_path)
         except:
-            model = gensim.models.Word2Vec(sentences, size=100, window=5, min_count=5, workers=8)
+            model = gensim.models.Word2Vec(bigram_transformer[sentences], \
+              window=10, sg=1, size=200, batch_words=200, workers=8)
             model.save(model_path)
+
+        import pdb; pdb.set_trace()
 
         fd = nltk.FreqDist(w for w in texto.split() if w not in stopwords and len(w)>2)
 
